@@ -1,0 +1,95 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2025-01-01T00:00:00+07:00",
+    "name": "Next.js",
+    "author": "nyxel",
+    "description": "Host a Next.js application with auto-update, private repo support, and both dev/production modes.",
+    "features": null,
+    "docker_images": {
+        "Nodejs 22": "ghcr.io/parkervcp/yolks:nodejs_22",
+        "Nodejs 21": "ghcr.io/parkervcp/yolks:nodejs_21",
+        "Nodejs 20": "ghcr.io/parkervcp/yolks:nodejs_20",
+        "Nodejs 18": "ghcr.io/parkervcp/yolks:nodejs_18"
+    },
+    "file_denylist": [],
+    "startup": "#!/bin/bash\n\n## ── Inject auth into GIT_URL if credentials are provided ──────────────────────\nif [ -n \"${USERNAME}\" ] && [ -n \"${ACCESS_TOKEN}\" ]; then\n    GIT_URL=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo ${GIT_URL} | sed 's|https://||')\"\nfi\n\n## ── Clone or pull repository ──────────────────────────────────────────────────\nif [ ! \"$(ls -A /home/container)\" ]; then\n    echo \"[EGG] /home/container is empty — cloning repository...\"\n    if [ -z \"${GIT_BRANCH}\" ]; then\n        git clone \"${GIT_URL}\" /home/container\n    else\n        git clone --single-branch --branch \"${GIT_BRANCH}\" \"${GIT_URL}\" /home/container\n    fi\nelse\n    echo \"[EGG] /home/container is not empty.\"\n    cd /home/container\n    if [ -d .git ]; then\n        if [ \"${AUTO_UPDATE}\" == \"1\" ]; then\n            echo \"[EGG] AUTO_UPDATE enabled — pulling latest changes...\"\n            git reset --hard\n            git fetch origin\n            if [ -n \"${GIT_BRANCH}\" ]; then\n                git checkout \"${GIT_BRANCH}\"\n                git pull origin \"${GIT_BRANCH}\"\n            else\n                git pull\n            fi\n        else\n            echo \"[EGG] AUTO_UPDATE disabled — skipping pull.\"\n        fi\n    else\n        echo \"[EGG] Not a git repo — wiping directory and re-cloning...\"\n        rm -rf /home/container/* /home/container/.[!.]* 2>/dev/null\n        if [ -z \"${GIT_BRANCH}\" ]; then\n            git clone \"${GIT_URL}\" /home/container\n        else\n            git clone --single-branch --branch \"${GIT_BRANCH}\" \"${GIT_URL}\" /home/container\n        fi\n    fi\nfi\n\ncd /home/container\n\n## ── Copy uploaded .env if present ────────────────────────────────────────────\nif [ -f /home/container/.env.pterodactyl ]; then\n    cp /home/container/.env.pterodactyl /home/container/.env\n    echo \"[EGG] .env.pterodactyl copied to .env\"\nfi\n\n## ── Install dependencies ──────────────────────────────────────────────────────\nif [ -f /home/container/package.json ]; then\n    echo \"[EGG] Installing dependencies...\"\n    if [ -f /home/container/package-lock.json ]; then\n        /usr/local/bin/npm ci\n    else\n        /usr/local/bin/npm install\n    fi\nfi\n\n## ── Build & Start ─────────────────────────────────────────────────────────────\nexport NODE_ENV=${NODE_RUN_ENV}\n\nif [ \"${NODE_RUN_ENV}\" == \"production\" ]; then\n    echo \"[EGG] Building for production...\"\n    /usr/local/bin/npm run build\n    echo \"[EGG] Starting in production mode on port {{SERVER_PORT}}...\"\n    /usr/local/bin/npx next start -p {{SERVER_PORT}}\nelse\n    echo \"[EGG] Starting in development mode on port {{SERVER_PORT}}...\"\n    /usr/local/bin/npx next dev -p {{SERVER_PORT}}\nfi",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": [\n        \"ready on\",\n        \"started server on\",\n        \"Local:        http://\",\n        \"Compiled successfully\"\n    ]\n}",
+        "logs": "{}",
+        "stop": "^^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Next.js Installation Script\n# Server Files: /mnt/server\n\nset -e\n\napt-get update -y\napt-get install -y git curl jq file unzip make gcc g++ python3 python3-dev libtool\n\nmkdir -p /mnt/server\ncd /mnt/server\n\n## ── Normalize GIT_URL ─────────────────────────────────────────────────────────\nif [[ ${GIT_URL} != *.git ]]; then\n    GIT_URL=${GIT_URL%/}\n    GIT_URL=${GIT_URL}.git\nfi\n\n## ── Inject auth into URL if credentials are set ──────────────────────────────\nif [ -n \"${USERNAME}\" ] && [ -n \"${ACCESS_TOKEN}\" ]; then\n    GIT_URL=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo ${GIT_URL} | sed 's|https://||')\"\nfi\n\n## ── Clone or update repository ───────────────────────────────────────────────\nif [ ! \"$(ls -A /mnt/server)\" ]; then\n    echo \"[INSTALL] /mnt/server is empty — cloning...\"\n    if [ -z \"${GIT_BRANCH}\" ]; then\n        git clone \"${GIT_URL}\" .\n    else\n        git clone --single-branch --branch \"${GIT_BRANCH}\" \"${GIT_URL}\" .\n    fi\nelse\n    echo \"[INSTALL] /mnt/server is not empty.\"\n    if [ -d .git ]; then\n        echo \"[INSTALL] Existing git repo found — resetting and pulling...\"\n        git reset --hard\n        git fetch origin\n        if [ -n \"${GIT_BRANCH}\" ]; then\n            git checkout \"${GIT_BRANCH}\"\n            git pull origin \"${GIT_BRANCH}\"\n        else\n            git pull\n        fi\n    else\n        echo \"[INSTALL] Not a git repo — wiping and re-cloning...\"\n        rm -rf /mnt/server/* /mnt/server/.[!.]* 2>/dev/null\n        if [ -z \"${GIT_BRANCH}\" ]; then\n            git clone \"${GIT_URL}\" .\n        else\n            git clone --single-branch --branch \"${GIT_BRANCH}\" \"${GIT_URL}\" .\n        fi\n    fi\nfi\n\n## ── Install Node dependencies ────────────────────────────────────────────────\nif [ -f /mnt/server/package.json ]; then\n    echo \"[INSTALL] Installing Node.js dependencies...\"\n    if [ -f /mnt/server/package-lock.json ]; then\n        /usr/local/bin/npm ci --omit=dev\n    else\n        /usr/local/bin/npm install --omit=dev\n    fi\nfi\n\necho \"[INSTALL] Installation complete.\"\nexit 0",
+            "container": "node:20-bookworm-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Git Repository URL",
+            "description": "Full HTTPS URL to the repository (e.g. https://github.com/user/repo). Do NOT include credentials here — use the Git Username and Access Token fields below.",
+            "env_variable": "GIT_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Branch",
+            "description": "Branch to clone and run (e.g. main, master, production). Leave empty to use the repository default branch.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "main",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto Update",
+            "description": "Set to 1 to pull the latest commits from the repository every time the server starts. Set to 0 to disable.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Username",
+            "description": "GitHub/GitLab username for private repositories. Leave empty for public repos.",
+            "env_variable": "USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Access Token",
+            "description": "Personal access token for private repositories (https://github.com/settings/tokens). Requires at least 'repo' scope. Leave empty for public repos.",
+            "env_variable": "ACCESS_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Run Environment",
+            "description": "Set to 'production' to build and run a fully optimized Next.js build (next build + next start). Set to 'development' for hot-reload dev mode (next dev). Recommended: production for live sites.",
+            "env_variable": "NODE_RUN_ENV",
+            "default_value": "production",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:production,development",
+            "field_type": "text"
+        }
+    ]
+}
