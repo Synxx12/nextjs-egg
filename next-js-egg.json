@@ -6,7 +6,7 @@
     },
     "exported_at": "2025-01-01T00:00:00+07:00",
     "name": "Next.js",
-    "author": "nyxel",
+    "author": "https://nyxel.my.id",
     "description": "Host a Next.js application with auto-update, private repo support, and both dev/production modes.",
     "features": null,
     "docker_images": {
