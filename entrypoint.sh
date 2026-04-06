@@ -109,10 +109,12 @@ if [ "${SHOULD_INSTALL}" = "1" ] && [ -f /home/container/package.json ]; then
 fi
 
 ## ── Install cloudflared (persistent, pinned version) ─────────────────────────
-CF_BIN="/home/container/.pterodactyl/cloudflared"
+CF_DIR="/home/container/.pterodactyl"
+CF_BIN="${CF_DIR}/cloudflared"
 CF_VERSION="2026.3.0"
 
 if [ -n "${CLOUDFLARE_TOKEN}" ]; then
+    mkdir -p "${CF_DIR}"
     if [ ! -f "${CF_BIN}" ]; then
         echo "[EGG] cloudflared not found — installing v${CF_VERSION}..."
         ARCH=$(uname -m)
