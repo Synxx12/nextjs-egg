@@ -1,119 +1,129 @@
 {
-    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
-    "meta": {
-        "version": "PTDL_v2",
-        "update_url": null
+  "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+  "meta": {
+    "version": "PTDL_v2",
+    "update_url": null
+  },
+  "exported_at": "2025-01-01T00:00:00+07:00",
+  "name": "Next.js",
+  "author": "https://nyxel.my.id",
+  "description": "Host a Next.js application with auto-update, private repo support, both dev/production modes, optional Cloudflare Tunnel, and configurable package manager.",
+  "features": null,
+  "docker_images": {
+    "Node.js 25 (Latest)": "ghcr.io/parkervcp/yolks:nodejs_25",
+    "Node.js 24 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_24",
+    "Node.js 23": "ghcr.io/parkervcp/yolks:nodejs_23",
+    "Node.js 22 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_22",
+    "Node.js 21": "ghcr.io/parkervcp/yolks:nodejs_21",
+    "Node.js 20 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_20",
+    "Node.js 19": "ghcr.io/parkervcp/yolks:nodejs_19",
+    "Node.js 18 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_18"
+  },
+  "file_denylist": [],
+  "startup": "bash -c \"mkdir -p /home/container/.pterodactyl && curl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh -o /home/container/.pterodactyl/entrypoint.sh || { echo '[EGG] Failed to download entrypoint!'; exit 1; } && chmod +x /home/container/.pterodactyl/entrypoint.sh && bash /home/container/.pterodactyl/entrypoint.sh\"",
+  "config": {
+    "files": "{}",
+    "startup": "{\n    \"done\": [\n        \"ready on\",\n        \"started server on\",\n        \"Local:        http://\",\n        \"Compiled successfully\",\n        \"listening on\",\n        \"\\u25b2 Next.js\"\n    ]\n}",
+    "logs": "{}",
+    "stop": "^^C"
+  },
+  "scripts": {
+    "installation": {
+      "script": "#!/bin/bash\n# Next.js Installation Script — nyxel\n\nset -e\n\napt-get update -y\napt-get install -y git curl jq file unzip make gcc g++ python3 python3-dev libtool\n\n## ── Write runtime entrypoint script ──────────────────────────────────────────\nmkdir -p /mnt/server/.pterodactyl\n\ncurl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh -o /mnt/server/.pterodactyl/entrypoint.sh\nchmod +x /mnt/server/.pterodactyl/entrypoint.sh\necho \"[INSTALL] entrypoint.sh downloaded to .pterodactyl/\"\n\n## ── Clone repository (only if GIT_URL is set) ────────────────────────────────\ncd /mnt/server\n\nif [ -n \"${GIT_URL}\" ]; then\n    if [ -n \"${USERNAME}\" ] && [ -n \"${ACCESS_TOKEN}\" ]; then\n        GIT_URL=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo ${GIT_URL} | sed 's|https://||')\"\n    fi\n\n    if [ -d /mnt/server/.git ]; then\n        echo \"[INSTALL] Git repo already present — pulling latest...\"\n        git reset --hard\n        git pull\n    else\n        echo \"[INSTALL] Wiping directory and cloning fresh...\"\n        find /mnt/server -mindepth 1 -not -path '/mnt/server/.pterodactyl*' -delete 2>/dev/null || true\n        if [ -z \"${GIT_BRANCH}\" ]; then\n            git clone \"${GIT_URL}\" /tmp/repo_clone\n        else\n            git clone --single-branch --branch \"${GIT_BRANCH}\" \"${GIT_URL}\" /tmp/repo_clone\n        fi\n        cp -a /tmp/repo_clone/. /mnt/server/\n        rm -rf /tmp/repo_clone\n    fi\n\n    if [ -f /mnt/server/package.json ]; then\n        echo \"[INSTALL] Installing Node.js dependencies...\"\n        cd /mnt/server\n        if [ -f /mnt/server/package-lock.json ]; then\n            /usr/local/bin/npm ci\n        else\n            /usr/local/bin/npm install\n        fi\n    fi\nelse\n    echo \"[INSTALL] GIT_URL is empty — skipping clone. Upload your project files via File Manager.\"\nfi\n\necho \"[INSTALL] Done.\"\nexit 0",
+      "container": "node:20-bookworm-slim",
+      "entrypoint": "bash"
+    }
+  },
+  "variables": [
+    {
+      "name": "Git Repository URL",
+      "description": "HTTPS URL to your Git repository (e.g. https://github.com/user/repo). Leave empty to skip cloning — you can upload project files manually via the File Manager.",
+      "env_variable": "GIT_URL",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
     },
-    "exported_at": "2025-01-01T00:00:00+07:00",
-    "name": "Next.js",
-    "author": "https://nyxel.my.id",
-    "description": "Host a Next.js application with auto-update, private repo support, both dev/production modes, optional Cloudflare Tunnel, and configurable package manager.",
-    "features": null,
-    "docker_images": {
-        "Node.js 25 (Latest)": "ghcr.io/parkervcp/yolks:nodejs_25",
-        "Node.js 24 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_24",
-        "Node.js 23": "ghcr.io/parkervcp/yolks:nodejs_23",
-        "Node.js 22 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_22",
-        "Node.js 21": "ghcr.io/parkervcp/yolks:nodejs_21",
-        "Node.js 20 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_20",
-        "Node.js 19": "ghcr.io/parkervcp/yolks:nodejs_19",
-        "Node.js 18 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_18"
+    {
+      "name": "Git Branch",
+      "description": "Branch to clone and run (e.g. main, master, production). Leave empty to use the repository default branch.",
+      "env_variable": "GIT_BRANCH",
+      "default_value": "main",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
     },
-    "file_denylist": [],
-    "startup": "bash -c \"mkdir -p /home/container/.pterodactyl && curl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh -o /home/container/.pterodactyl/entrypoint.sh && chmod +x /home/container/.pterodactyl/entrypoint.sh && bash /home/container/.pterodactyl/entrypoint.sh\"",
-    "config": {
-        "files": "{}",
-        "startup": "{\n    \"done\": [\n        \"ready on\",\n        \"started server on\",\n        \"Local:        http://\",\n        \"Compiled successfully\",\n        \"listening on\",\n        \"\\u25b2 Next.js\"\n    ]\n}",
-        "logs": "{}",
-        "stop": "^^C"
+    {
+      "name": "Auto Update",
+      "description": "Set to 1 to pull the latest commits from the repository every time the server starts. Set to 0 to disable.",
+      "env_variable": "AUTO_UPDATE",
+      "default_value": "1",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|boolean",
+      "field_type": "text"
     },
-    "scripts": {
-        "installation": {
-            "script": "#!/bin/bash\n# Next.js Installation Script — nyxel\n\nset -e\n\napt-get update -y\napt-get install -y git curl jq file unzip make gcc g++ python3 python3-dev libtool\n\n## ── Write runtime entrypoint script ──────────────────────────────────────────\nmkdir -p /mnt/server/.pterodactyl\n\ncurl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh -o /mnt/server/.pterodactyl/entrypoint.sh\nchmod +x /mnt/server/.pterodactyl/entrypoint.sh\necho \"[INSTALL] entrypoint.sh downloaded to .pterodactyl/\"\n\n## ── Clone repository (only if GIT_URL is set) ────────────────────────────────\ncd /mnt/server\n\nif [ -n \"${GIT_URL}\" ]; then\n    if [ -n \"${USERNAME}\" ] && [ -n \"${ACCESS_TOKEN}\" ]; then\n        GIT_URL=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo ${GIT_URL} | sed 's|https://||')\"\n    fi\n\n    if [ -d /mnt/server/.git ]; then\n        echo \"[INSTALL] Git repo already present — pulling latest...\"\n        git reset --hard\n        git pull\n    else\n        echo \"[INSTALL] Wiping directory and cloning fresh...\"\n        find /mnt/server -mindepth 1 -not -path '/mnt/server/.pterodactyl*' -delete 2>/dev/null || true\n        if [ -z \"${GIT_BRANCH}\" ]; then\n            git clone \"${GIT_URL}\" /tmp/repo_clone\n        else\n            git clone --single-branch --branch \"${GIT_BRANCH}\" \"${GIT_URL}\" /tmp/repo_clone\n        fi\n        cp -a /tmp/repo_clone/. /mnt/server/\n        rm -rf /tmp/repo_clone\n    fi\n\n    if [ -f /mnt/server/package.json ]; then\n        echo \"[INSTALL] Installing Node.js dependencies...\"\n        cd /mnt/server\n        if [ -f /mnt/server/package-lock.json ]; then\n            /usr/local/bin/npm ci\n        else\n            /usr/local/bin/npm install\n        fi\n    fi\nelse\n    echo \"[INSTALL] GIT_URL is empty — skipping clone. Upload your project files via File Manager.\"\nfi\n\necho \"[INSTALL] Done.\"\nexit 0",
-            "container": "node:20-bookworm-slim",
-            "entrypoint": "bash"
-        }
+    {
+      "name": "Git Username",
+      "description": "GitHub/GitLab username for private repositories. Leave empty for public repos.",
+      "env_variable": "USERNAME",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
     },
-    "variables": [
-        {
-            "name": "Git Repository URL",
-            "description": "HTTPS URL to your Git repository (e.g. https://github.com/user/repo). Leave empty to skip cloning — you can upload project files manually via the File Manager.",
-            "env_variable": "GIT_URL",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string",
-            "field_type": "text"
-        },
-        {
-            "name": "Git Branch",
-            "description": "Branch to clone and run (e.g. main, master, production). Leave empty to use the repository default branch.",
-            "env_variable": "GIT_BRANCH",
-            "default_value": "main",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string",
-            "field_type": "text"
-        },
-        {
-            "name": "Auto Update",
-            "description": "Set to 1 to pull the latest commits from the repository every time the server starts. Set to 0 to disable.",
-            "env_variable": "AUTO_UPDATE",
-            "default_value": "1",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|boolean",
-            "field_type": "text"
-        },
-        {
-            "name": "Git Username",
-            "description": "GitHub/GitLab username for private repositories. Leave empty for public repos.",
-            "env_variable": "USERNAME",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string",
-            "field_type": "text"
-        },
-        {
-            "name": "Git Access Token",
-            "description": "Personal access token for private repositories (https://github.com/settings/tokens). Requires at least 'repo' scope. Leave empty for public repos.",
-            "env_variable": "ACCESS_TOKEN",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string",
-            "field_type": "text"
-        },
-        {
-            "name": "Run Environment",
-            "description": "Set to 'production' to build and run a fully optimized Next.js build (next build + next start). Set to 'development' for hot-reload dev mode (next dev). Recommended: production for live sites.",
-            "env_variable": "NODE_RUN_ENV",
-            "default_value": "production",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|string|in:production,development",
-            "field_type": "text"
-        },
-        {
-            "name": "Package Manager",
-            "description": "Package manager to use for installing dependencies. Set to 'auto' to detect automatically from lockfile (pnpm-lock.yaml -> pnpm, yarn.lock -> yarn, otherwise npm). Options: auto, npm, pnpm, yarn.",
-            "env_variable": "PACKAGE_MANAGER",
-            "default_value": "auto",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|string|in:auto,npm,pnpm,yarn",
-            "field_type": "text"
-        },
-        {
-            "name": "Cloudflare Tunnel Token",
-            "description": "Optional. Cloudflare Tunnel token from your Zero Trust dashboard (Networks > Tunnels > Configure > Run token). Leave empty to disable the tunnel.",
-            "env_variable": "CLOUDFLARE_TOKEN",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string",
-            "field_type": "text"
-        }
-    ]
+    {
+      "name": "Git Access Token",
+      "description": "Personal access token for private repositories (https://github.com/settings/tokens). Requires at least 'repo' scope. Leave empty for public repos.",
+      "env_variable": "ACCESS_TOKEN",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Run Environment",
+      "description": "Set to 'production' to build and run a fully optimized Next.js build (next build + next start). Set to 'development' for hot-reload dev mode (next dev). Recommended: production for live sites.",
+      "env_variable": "NODE_RUN_ENV",
+      "default_value": "production",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:production,development",
+      "field_type": "text"
+    },
+    {
+      "name": "Package Manager",
+      "description": "Package manager to use for installing dependencies. Set to 'auto' to detect automatically from lockfile (pnpm-lock.yaml -> pnpm, yarn.lock -> yarn, otherwise npm). Options: auto, npm, pnpm, yarn.",
+      "env_variable": "PACKAGE_MANAGER",
+      "default_value": "auto",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:auto,npm,pnpm,yarn",
+      "field_type": "text"
+    },
+    {
+      "name": "Build Command",
+      "description": "Custom build command override. Leave empty to use the default 'next build'. Use this for monorepos or custom setups (e.g. 'turbo build', 'next build --experimental-turbo').",
+      "env_variable": "BUILD_COMMAND",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Cloudflare Tunnel Token",
+      "description": "Optional. Cloudflare Tunnel token from your Zero Trust dashboard (Networks > Tunnels > Configure > Run token). Leave empty to disable the tunnel.",
+      "env_variable": "CLOUDFLARE_TOKEN",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    }
+  ]
 }

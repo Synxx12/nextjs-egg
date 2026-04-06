@@ -51,7 +51,7 @@ fi
 
 cd /home/container
 
-## Copy .env if uploaded via panel
+## ── Copy .env if uploaded via panel ──────────────────────────────────────────
 if [ -f /home/container/.env.pterodactyl ]; then
     cp /home/container/.env.pterodactyl /home/container/.env
     echo "[EGG] .env.pterodactyl copied to .env"
@@ -86,8 +86,14 @@ elif [ "${PM}" = "yarn" ]; then
     fi
 fi
 
-## Install dependencies
-if [ -f /home/container/package.json ]; then
+## ── Install dependencies (skip if node_modules exists and AUTO_UPDATE=0) ──────
+SHOULD_INSTALL=1
+if [ "${AUTO_UPDATE}" != "1" ] && [ -d /home/container/node_modules ]; then
+    echo "[EGG] node_modules exists and AUTO_UPDATE is disabled — skipping install."
+    SHOULD_INSTALL=0
+fi
+
+if [ "${SHOULD_INSTALL}" = "1" ] && [ -f /home/container/package.json ]; then
     echo "[EGG] Installing dependencies with ${PM}..."
     if [ "${PM}" = "pnpm" ]; then
         pnpm install --frozen-lockfile 2>/dev/null || pnpm install
@@ -102,10 +108,13 @@ if [ -f /home/container/package.json ]; then
     fi
 fi
 
-## ── Install cloudflared if token is set ──────────────────────────────────────
+## ── Install cloudflared (persistent, pinned version) ─────────────────────────
+CF_BIN="/home/container/.pterodactyl/cloudflared"
+CF_VERSION="2026.3.0"
+
 if [ -n "${CLOUDFLARE_TOKEN}" ]; then
-    if ! command -v cloudflared &>/dev/null; then
-        echo "[EGG] cloudflared not found — installing..."
+    if [ ! -f "${CF_BIN}" ]; then
+        echo "[EGG] cloudflared not found — installing v${CF_VERSION}..."
         ARCH=$(uname -m)
         if [ "${ARCH}" = "x86_64" ]; then
             CF_ARCH="amd64"
@@ -114,20 +123,21 @@ if [ -n "${CLOUDFLARE_TOKEN}" ]; then
         else
             CF_ARCH="amd64"
         fi
-        curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" \
-            -o /usr/local/bin/cloudflared
-        chmod +x /usr/local/bin/cloudflared
-        echo "[EGG] cloudflared installed successfully."
+        curl -fsSL "https://github.com/cloudflare/cloudflared/releases/download/${CF_VERSION}/cloudflared-linux-${CF_ARCH}" \
+            -o "${CF_BIN}" || { echo "[EGG] ERROR: Failed to download cloudflared!"; exit 1; }
+        chmod +x "${CF_BIN}"
+        echo "[EGG] cloudflared v${CF_VERSION} installed to ${CF_BIN}"
     else
-        echo "[EGG] cloudflared already installed — skipping."
+        echo "[EGG] cloudflared already present — skipping download."
     fi
 fi
 
 ## ── Build ────────────────────────────────────────────────────────────────────
 export NODE_ENV=${NODE_RUN_ENV}
+BUILD_CMD="${BUILD_COMMAND:-next build}"
 
 if [ "${NODE_RUN_ENV}" = "production" ]; then
-    echo "[EGG] Building for production..."
+    echo "[EGG] Building for production (${BUILD_CMD})..."
     if [ "${PM}" = "pnpm" ]; then
         pnpm run build
     elif [ "${PM}" = "yarn" ]; then
@@ -135,17 +145,22 @@ if [ "${NODE_RUN_ENV}" = "production" ]; then
     else
         /usr/local/bin/npm run build
     fi
-    echo "[EGG] Starting on port ${SERVER_PORT}..."
+    echo "[EGG] Build complete — starting on port ${SERVER_PORT}..."
 else
     echo "[EGG] Starting dev server on port ${SERVER_PORT}..."
 fi
 
-## ── Start Cloudflare Tunnel in background if token is set ────────────────────
+## ── Start Cloudflare Tunnel in background ────────────────────────────────────
 if [ -n "${CLOUDFLARE_TOKEN}" ]; then
     echo "[EGG] Starting Cloudflare Tunnel..."
-    cloudflared tunnel --no-autoupdate run --token "${CLOUDFLARE_TOKEN}" &
+    "${CF_BIN}" tunnel --no-autoupdate run --token "${CLOUDFLARE_TOKEN}" &
     CF_PID=$!
-    echo "[EGG] Cloudflare Tunnel started (PID: ${CF_PID})"
+    sleep 3
+    if kill -0 "${CF_PID}" 2>/dev/null; then
+        echo "[EGG] Cloudflare Tunnel started (PID: ${CF_PID})"
+    else
+        echo "[EGG] WARNING: Cloudflare Tunnel failed to start — check your token!"
+    fi
 fi
 
 ## ── Start Next.js (foreground) ───────────────────────────────────────────────
