@@ -20,7 +20,7 @@
         "Node.js 18 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_18"
     },
     "file_denylist": [],
-    "startup": "bash -c \"mkdir -p /home/container/.pterodactyl && ([ -f /home/container/.pterodactyl/entrypoint.sh ] || curl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh -o /home/container/.pterodactyl/entrypoint.sh) && chmod +x /home/container/.pterodactyl/entrypoint.sh && bash /home/container/.pterodactyl/entrypoint.sh\"",
+    "startup": "bash -c \"mkdir -p /home/container/.pterodactyl && curl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh -o /home/container/.pterodactyl/entrypoint.sh && chmod +x /home/container/.pterodactyl/entrypoint.sh && bash /home/container/.pterodactyl/entrypoint.sh\"",
     "config": {
         "files": "{}",
         "startup": "{\n    \"done\": [\n        \"ready on\",\n        \"started server on\",\n        \"Local:        http://\",\n        \"Compiled successfully\",\n        \"listening on\",\n        \"\\u25b2 Next.js\"\n    ]\n}",
