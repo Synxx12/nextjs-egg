@@ -102,10 +102,10 @@ if [ -f /home/container/package.json ]; then
     fi
 fi
 
-## Install cloudflared if token is set
+## ── Install cloudflared if token is set ──────────────────────────────────────
 if [ -n "${CLOUDFLARE_TOKEN}" ]; then
     if ! command -v cloudflared &>/dev/null; then
-        echo "[EGG] Installing cloudflared..."
+        echo "[EGG] cloudflared not found — installing..."
         ARCH=$(uname -m)
         if [ "${ARCH}" = "x86_64" ]; then
             CF_ARCH="amd64"
@@ -114,15 +114,16 @@ if [ -n "${CLOUDFLARE_TOKEN}" ]; then
         else
             CF_ARCH="amd64"
         fi
-        curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" -o /usr/local/bin/cloudflared
+        curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" \
+            -o /usr/local/bin/cloudflared
         chmod +x /usr/local/bin/cloudflared
-        echo "[EGG] cloudflared installed."
+        echo "[EGG] cloudflared installed successfully."
     else
-        echo "[EGG] cloudflared already installed."
+        echo "[EGG] cloudflared already installed — skipping."
     fi
 fi
 
-## Build
+## ── Build ────────────────────────────────────────────────────────────────────
 export NODE_ENV=${NODE_RUN_ENV}
 
 if [ "${NODE_RUN_ENV}" = "production" ]; then
@@ -139,7 +140,7 @@ else
     echo "[EGG] Starting dev server on port ${SERVER_PORT}..."
 fi
 
-## Start Cloudflare Tunnel in background if token is set
+## ── Start Cloudflare Tunnel in background if token is set ────────────────────
 if [ -n "${CLOUDFLARE_TOKEN}" ]; then
     echo "[EGG] Starting Cloudflare Tunnel..."
     cloudflared tunnel --no-autoupdate run --token "${CLOUDFLARE_TOKEN}" &
@@ -147,7 +148,7 @@ if [ -n "${CLOUDFLARE_TOKEN}" ]; then
     echo "[EGG] Cloudflare Tunnel started (PID: ${CF_PID})"
 fi
 
-## Start Next.js (foreground)
+## ── Start Next.js (foreground) ───────────────────────────────────────────────
 if [ "${NODE_RUN_ENV}" = "production" ]; then
     exec /usr/local/bin/npx next start -p ${SERVER_PORT}
 else
