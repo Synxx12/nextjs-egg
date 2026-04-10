@@ -77,7 +77,7 @@
       "description": "Personal access token for private repositories (https://github.com/settings/tokens). Requires at least 'repo' scope. Leave empty for public repos.",
       "env_variable": "ACCESS_TOKEN",
       "default_value": "",
-      "user_viewable": false,
+      "user_viewable": true,
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
@@ -147,7 +147,7 @@
       "description": "Optional. Cloudflare Tunnel token from your Zero Trust dashboard (Networks > Tunnels > Configure > Run token). Leave empty to disable the tunnel.",
       "env_variable": "CLOUDFLARE_TOKEN",
       "default_value": "",
-      "user_viewable": false,
+      "user_viewable": true,
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
