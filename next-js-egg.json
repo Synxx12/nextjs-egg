@@ -7,29 +7,26 @@
   "exported_at": "2025-01-01T00:00:00+07:00",
   "name": "Next.js",
   "author": "https://nyxel.my.id",
-  "description": "Host a Next.js application with auto-update, private repo support, both dev/production modes, optional Cloudflare Tunnel, and configurable package manager.",
+  "description": "Host a Next.js application with auto-update, private repo support, both dev/production modes, optional Cloudflare Tunnel, monorepo support, and configurable package manager.",
   "features": null,
   "docker_images": {
-    "Node.js 25 (Latest)": "ghcr.io/parkervcp/yolks:nodejs_25",
-    "Node.js 24 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_24",
+    "Node.js 24": "ghcr.io/parkervcp/yolks:nodejs_24",
     "Node.js 23": "ghcr.io/parkervcp/yolks:nodejs_23",
-    "Node.js 22 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_22",
-    "Node.js 21": "ghcr.io/parkervcp/yolks:nodejs_21",
+    "Node.js 22 (LTS) ✓ Recommended": "ghcr.io/parkervcp/yolks:nodejs_22",
     "Node.js 20 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_20",
-    "Node.js 19": "ghcr.io/parkervcp/yolks:nodejs_19",
     "Node.js 18 (LTS)": "ghcr.io/parkervcp/yolks:nodejs_18"
   },
   "file_denylist": [],
   "startup": "bash -c \"mkdir -p /home/container/.pterodactyl && curl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh -o /home/container/.pterodactyl/entrypoint.sh || { echo '[EGG] Failed to download entrypoint!'; exit 1; } && chmod +x /home/container/.pterodactyl/entrypoint.sh && bash /home/container/.pterodactyl/entrypoint.sh\"",
   "config": {
     "files": "{}",
-    "startup": "{\n    \"done\": [\n        \"ready on\",\n        \"started server on\",\n        \"Local:        http://\",\n        \"Compiled successfully\",\n        \"listening on\",\n        \"\\u25b2 Next.js\"\n    ]\n}",
+    "startup": "{\n  \"done\": [\n    \"ready on\",\n    \"started server on\",\n    \"Local: http://\",\n    \"Compiled successfully\",\n    \"listening on\",\n    \"\\u25b2 Next.js\"\n  ]\n}",
     "logs": "{}",
     "stop": "^^C"
   },
   "scripts": {
     "installation": {
-      "script": "#!/bin/bash\n# Next.js Installation Script — nyxel\n\nset -e\n\napt-get update -y\napt-get install -y git curl jq file unzip make gcc g++ python3 python3-dev libtool\n\n## ── Write runtime entrypoint script ──────────────────────────────────────────\nmkdir -p /mnt/server/.pterodactyl\n\ncurl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh -o /mnt/server/.pterodactyl/entrypoint.sh\nchmod +x /mnt/server/.pterodactyl/entrypoint.sh\necho \"[INSTALL] entrypoint.sh downloaded to .pterodactyl/\"\n\n## ── Clone repository (only if GIT_URL is set) ────────────────────────────────\ncd /mnt/server\n\nif [ -n \"${GIT_URL}\" ]; then\n    if [ -n \"${USERNAME}\" ] && [ -n \"${ACCESS_TOKEN}\" ]; then\n        GIT_URL=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo ${GIT_URL} | sed 's|https://||')\"\n    fi\n\n    if [ -d /mnt/server/.git ]; then\n        echo \"[INSTALL] Git repo already present — pulling latest...\"\n        git reset --hard\n        git pull\n    else\n        echo \"[INSTALL] Wiping directory and cloning fresh...\"\n        find /mnt/server -mindepth 1 -not -path '/mnt/server/.pterodactyl*' -delete 2>/dev/null || true\n        if [ -z \"${GIT_BRANCH}\" ]; then\n            git clone \"${GIT_URL}\" /tmp/repo_clone\n        else\n            git clone --single-branch --branch \"${GIT_BRANCH}\" \"${GIT_URL}\" /tmp/repo_clone\n        fi\n        cp -a /tmp/repo_clone/. /mnt/server/\n        rm -rf /tmp/repo_clone\n    fi\n\n    if [ -f /mnt/server/package.json ]; then\n        echo \"[INSTALL] Installing Node.js dependencies...\"\n        cd /mnt/server\n        if [ -f /mnt/server/package-lock.json ]; then\n            /usr/local/bin/npm ci\n        else\n            /usr/local/bin/npm install\n        fi\n    fi\nelse\n    echo \"[INSTALL] GIT_URL is empty — skipping clone. Upload your project files via File Manager.\"\nfi\n\necho \"[INSTALL] Done.\"\nexit 0",
+      "script": "#!/bin/bash\n# Next.js Installation Script — nyxel\n\nset -e\n\napt-get update -y\napt-get install -y git curl jq file unzip make gcc g++ python3 python3-dev libtool\n\n## ── Install pnpm and yarn globally so they're available at runtime ──────────\n/usr/local/bin/npm install -g pnpm yarn --quiet\necho \"[INSTALL] pnpm and yarn installed globally.\"\n\n## ── Write runtime entrypoint script ─────────────────────────────────────────\nmkdir -p /mnt/server/.pterodactyl\n\ncurl -fsSL https://raw.githubusercontent.com/Synxx12/nextjs-egg/main/entrypoint.sh \\\n  -o /mnt/server/.pterodactyl/entrypoint.sh || { echo '[INSTALL] Failed to download entrypoint!'; exit 1; }\nchmod +x /mnt/server/.pterodactyl/entrypoint.sh\necho \"[INSTALL] entrypoint.sh downloaded to .pterodactyl/\"\n\n## ── Clone repository (only if GIT_URL is set) ───────────────────────────────\ncd /mnt/server\n\nif [ -n \"${GIT_URL}\" ]; then\n  if [ -n \"${USERNAME}\" ] && [ -n \"${ACCESS_TOKEN}\" ]; then\n    GIT_URL=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo ${GIT_URL} | sed 's|https://||')\"\n  fi\n\n  WORK_DIR=\"/mnt/server\"\n  if [ -n \"${APP_DIR}\" ]; then\n    echo \"[INSTALL] APP_DIR set to '${APP_DIR}' — will resolve after clone.\"\n  fi\n\n  if [ -d /mnt/server/.git ]; then\n    echo \"[INSTALL] Git repo already present — pulling latest...\"\n    git reset --hard\n    git pull\n  else\n    echo \"[INSTALL] Wiping directory and cloning fresh...\"\n    find /mnt/server -mindepth 1 -not -path '/mnt/server/.pterodactyl*' -delete 2>/dev/null || true\n    if [ -z \"${GIT_BRANCH}\" ]; then\n      git clone \"${GIT_URL}\" /tmp/repo_clone\n    else\n      git clone --single-branch --branch \"${GIT_BRANCH}\" \"${GIT_URL}\" /tmp/repo_clone\n    fi\n    cp -a /tmp/repo_clone/. /mnt/server/\n    rm -rf /tmp/repo_clone\n  fi\n\n  ## Resolve APP_DIR for install\n  if [ -n \"${APP_DIR}\" ]; then\n    WORK_DIR=\"/mnt/server/${APP_DIR}\"\n    if [ ! -d \"${WORK_DIR}\" ]; then\n      echo \"[INSTALL] ERROR: APP_DIR '${APP_DIR}' not found after clone!\"\n      exit 1\n    fi\n    cd \"${WORK_DIR}\"\n  fi\n\n  if [ -f \"${WORK_DIR}/package.json\" ]; then\n    echo \"[INSTALL] Installing Node.js dependencies...\"\n\n    ## Detect package manager\n    PM=\"${PACKAGE_MANAGER:-auto}\"\n    if [ \"${PM}\" = \"auto\" ]; then\n      if [ -f \"${WORK_DIR}/pnpm-lock.yaml\" ]; then\n        PM=\"pnpm\"\n      elif [ -f \"${WORK_DIR}/yarn.lock\" ]; then\n        PM=\"yarn\"\n      else\n        PM=\"npm\"\n      fi\n    fi\n    echo \"[INSTALL] Using package manager: ${PM}\"\n\n    if [ \"${PM}\" = \"pnpm\" ]; then\n      pnpm install --frozen-lockfile 2>/dev/null || pnpm install\n    elif [ \"${PM}\" = \"yarn\" ]; then\n      yarn install --frozen-lockfile 2>/dev/null || yarn install\n    else\n      if [ -f \"${WORK_DIR}/package-lock.json\" ]; then\n        /usr/local/bin/npm ci\n      else\n        /usr/local/bin/npm install\n      fi\n    fi\n  fi\nelse\n  echo \"[INSTALL] GIT_URL is empty — skipping clone. Upload your project files via File Manager.\"\nfi\n\necho \"[INSTALL] Done.\"\nexit 0",
       "container": "node:20-bookworm-slim",
       "entrypoint": "bash"
     }
@@ -80,7 +77,7 @@
       "description": "Personal access token for private repositories (https://github.com/settings/tokens). Requires at least 'repo' scope. Leave empty for public repos.",
       "env_variable": "ACCESS_TOKEN",
       "default_value": "",
-      "user_viewable": true,
+      "user_viewable": false,
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
@@ -107,9 +104,39 @@
     },
     {
       "name": "Build Command",
-      "description": "Custom build command override. Leave empty to use the default 'next build'. Use this for monorepos or custom setups (e.g. 'turbo build', 'next build --experimental-turbo').",
+      "description": "Custom build command override. Leave empty to use the default package manager build script. Use this for monorepos or custom setups (e.g. 'turbo build', 'npx next build --experimental-turbo').",
       "env_variable": "BUILD_COMMAND",
       "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Skip Build",
+      "description": "Set to 1 to skip the Next.js build step if a .next directory already exists. Useful for quick restarts without a full rebuild. Set to 0 to always rebuild on startup.",
+      "env_variable": "SKIP_BUILD",
+      "default_value": "0",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|boolean",
+      "field_type": "text"
+    },
+    {
+      "name": "App Directory",
+      "description": "Relative path to your Next.js app within the repository. Leave empty for root-level apps. Use for monorepos (e.g. 'apps/web', 'frontend').",
+      "env_variable": "APP_DIR",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Node Options",
+      "description": "Extra Node.js runtime flags (e.g. --max-old-space-size=512 to limit memory usage). Leave empty for defaults. Useful on servers with limited RAM.",
+      "env_variable": "NODE_OPTIONS",
+      "default_value": "--max-old-space-size=512",
       "user_viewable": true,
       "user_editable": true,
       "rules": "nullable|string",
@@ -120,7 +147,7 @@
       "description": "Optional. Cloudflare Tunnel token from your Zero Trust dashboard (Networks > Tunnels > Configure > Run token). Leave empty to disable the tunnel.",
       "env_variable": "CLOUDFLARE_TOKEN",
       "default_value": "",
-      "user_viewable": true,
+      "user_viewable": false,
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
