@@ -57,6 +57,7 @@ A production-ready Pterodactyl egg for hosting **Next.js** applications directly
 | Skip Build              | `SKIP_BUILD`       | `0`                        | Set to `1` to skip rebuild if `.next` already exists. Useful for quick restarts             |
 | App Directory           | `APP_DIR`          | _(empty)_                  | Relative path to your Next.js app for monorepos (e.g. `apps/web`). Leave empty for root     |
 | Node Options            | `NODE_OPTIONS`     | `--max-old-space-size=512` | Node.js runtime flags. Adjust memory limit based on your server RAM                         |
+| **Public Domain**       | `PUBLIC_DOMAIN`    | _(empty)_                  | Your public domain (e.g. `https://www.example.com`). Auto-injects `NEXTAUTH_URL` and `NEXT_PUBLIC_BASE_URL` into `.env` to prevent localhost redirect issues |
 | Cloudflare Tunnel Token | `CLOUDFLARE_TOKEN` | _(empty)_                  | Zero Trust tunnel token. Leave empty to disable _(hidden in panel)_                         |
 
 ---
@@ -104,6 +105,31 @@ If you want to expose your app via Cloudflare Zero Trust without opening a publi
 3. Paste it into the `CLOUDFLARE_TOKEN` variable
 
 The egg will automatically download `cloudflared` on first start and run the tunnel in the background alongside your app.
+
+> **Important:** When using Cloudflare Tunnel, you **must** set `PUBLIC_DOMAIN` to your public URL (e.g. `https://www.example.com`). Without this, your app will think it's running on `localhost` and authentication redirects (login, logout, OAuth) will break.
+
+---
+
+## 🌐 Public Domain & Localhost Redirect Fix
+
+When running behind Cloudflare Tunnel or any reverse proxy, Next.js doesn't know your public URL — it only sees `localhost:PORT`. This causes:
+- Login/logout redirecting to `http://localhost:3000/auth` instead of your domain
+- NextAuth OAuth callbacks failing
+- Open Graph meta tags pointing to localhost
+
+**The fix:** Set `PUBLIC_DOMAIN` in your server's Startup variables:
+
+```
+PUBLIC_DOMAIN = https://www.example.com
+```
+
+The egg will automatically inject these into your `.env` file on every startup:
+```
+NEXTAUTH_URL=https://www.example.com
+NEXT_PUBLIC_BASE_URL=https://www.example.com
+```
+
+> If you already have these values in your `.env` or `.env.pterodactyl`, they will be **overwritten** by `PUBLIC_DOMAIN` to ensure consistency.
 
 ---
 
@@ -165,6 +191,9 @@ The egg installs `pnpm`/`yarn` automatically at runtime if not present. If it fa
 
 **Cloudflare Tunnel not connecting**
 Check that your token is correct and hasn't been revoked. The egg prints a warning if `cloudflared` fails to start — check the console for `[EGG] WARNING: Cloudflare Tunnel failed to start`.
+
+**Redirected to localhost after login/logout**
+This happens when Next.js doesn't know your public URL (common behind Cloudflare Tunnel or reverse proxies). Set `PUBLIC_DOMAIN` to your full public URL (e.g. `https://www.example.com`) in the Startup variables. The egg will auto-inject `NEXTAUTH_URL` and `NEXT_PUBLIC_BASE_URL` into your `.env` on startup.
 
 **Monorepo: APP_DIR not found**
 Make sure the path in `APP_DIR` matches the actual directory structure in your repo (case-sensitive). The egg will exit with an error if the directory doesn't exist after cloning.

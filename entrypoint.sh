@@ -149,6 +149,42 @@ else
   _warn "No .env file found — make sure environment variables are set if needed"
 fi
 
+# ── Auto-inject PUBLIC_DOMAIN into .env ───────────────────────────────────────
+# Prevents the common "redirect to localhost" issue when behind Cloudflare Tunnel
+# or any reverse proxy. Sets NEXTAUTH_URL and NEXT_PUBLIC_BASE_URL automatically.
+
+if [ -n "${PUBLIC_DOMAIN}" ]; then
+  # Normalize: ensure it starts with https:// and has no trailing slash
+  DOMAIN="${PUBLIC_DOMAIN}"
+  if [[ ! "${DOMAIN}" =~ ^https?:// ]]; then
+    DOMAIN="https://${DOMAIN}"
+  fi
+  DOMAIN="${DOMAIN%/}"
+
+  ENV_FILE="/home/container/.env"
+
+  # Create .env if it doesn't exist
+  [ ! -f "${ENV_FILE}" ] && touch "${ENV_FILE}"
+
+  # Update or append NEXTAUTH_URL
+  if grep -q "^NEXTAUTH_URL=" "${ENV_FILE}" 2>/dev/null; then
+    sed -i "s|^NEXTAUTH_URL=.*|NEXTAUTH_URL=${DOMAIN}|" "${ENV_FILE}"
+  else
+    echo "NEXTAUTH_URL=${DOMAIN}" >> "${ENV_FILE}"
+  fi
+
+  # Update or append NEXT_PUBLIC_BASE_URL
+  if grep -q "^NEXT_PUBLIC_BASE_URL=" "${ENV_FILE}" 2>/dev/null; then
+    sed -i "s|^NEXT_PUBLIC_BASE_URL=.*|NEXT_PUBLIC_BASE_URL=${DOMAIN}|" "${ENV_FILE}"
+  else
+    echo "NEXT_PUBLIC_BASE_URL=${DOMAIN}" >> "${ENV_FILE}"
+  fi
+
+  _ok "PUBLIC_DOMAIN → injected into .env"
+  _info "NEXTAUTH_URL=${DOMAIN}"
+  _info "NEXT_PUBLIC_BASE_URL=${DOMAIN}"
+fi
+
 _info "NODE_ENV = ${NODE_RUN_ENV}"
 _info "Port     = ${SERVER_PORT}"
 

@@ -123,6 +123,16 @@
       "field_type": "text"
     },
     {
+      "name": "Public Domain",
+      "description": "Your public-facing domain (e.g. https://www.example.com). Required when using Cloudflare Tunnel or any reverse proxy. The egg will automatically set NEXTAUTH_URL and NEXT_PUBLIC_BASE_URL in your .env file on startup, preventing redirect issues (e.g. being redirected to localhost after login/logout). Leave empty if not using a custom domain.",
+      "env_variable": "PUBLIC_DOMAIN",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
       "name": "Cloudflare Tunnel Token",
       "description": "Optional. Your Cloudflare Tunnel token from the Zero Trust dashboard (Networks → Tunnels → Configure → Run token). When set, the server will be accessible via your Cloudflare domain without opening any ports. Leave empty to disable.",
       "env_variable": "CLOUDFLARE_TOKEN",
