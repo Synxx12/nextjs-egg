@@ -212,39 +212,48 @@ export NODE_ENV=${NODE_RUN_ENV}
 if [ "${NODE_RUN_ENV}" = "production" ]; then
   _step "Building for production"
 
-  # Check if we can skip build
   SKIP_BUILD="${SKIP_BUILD:-0}"
   BUILD_CACHE_VALID=0
 
   if [ "${SKIP_BUILD}" = "1" ]; then
     if [ -d /home/container/.next ] && [ -f /home/container/.next/BUILD_ID ]; then
-      _ok "SKIP_BUILD=1 — using existing .next/ build"
+      _ok "SKIP_BUILD=1 — pre-built .next/ found, skipping build"
+      _info "Faster startup — build is not running on this server"
       BUILD_CACHE_VALID=1
     else
-      _warn "SKIP_BUILD=1 but no valid .next/ found — will build anyway"
+      _warn "SKIP_BUILD=1 but no valid .next/ found — building anyway..."
     fi
   fi
 
   if [ "${BUILD_CACHE_VALID}" = "0" ]; then
     BUILD_CMD="${BUILD_COMMAND:-}"
 
+    echo ""
+    echo -e "   ${YELLOW}${BOLD}Tip — for faster startup:${RESET}"
+    echo -e "   ${DIM}Build locally: run '${PM} run build' in your project terminal${RESET}"
+    echo -e "   ${DIM}Upload the .next/ folder to the server via File Manager${RESET}"
+    echo -e "   ${DIM}Then set SKIP_BUILD=1 in Startup settings${RESET}"
+    echo ""
+    _sep
+    _info "Starting build... this may take a few minutes."
+    _info "Do not restart the server while this is running."
     _sep
 
     if [ -n "${BUILD_CMD}" ]; then
       _info "Custom build command: ${BUILD_CMD}"
-      eval "${BUILD_CMD}" || _die "Custom build command failed: ${BUILD_CMD}"
+      eval "${BUILD_CMD}" || _die "Build failed. Check the logs above for details."
     else
       if [ "${PM}" = "pnpm" ]; then
-        pnpm run build || _die "Build failed. Check the logs above for errors."
+        pnpm run build || _die "Build failed. Check the logs above for details."
       elif [ "${PM}" = "yarn" ]; then
-        yarn build || _die "Build failed. Check the logs above for errors."
+        yarn build || _die "Build failed. Check the logs above for details."
       else
-        /usr/local/bin/npm run build || _die "Build failed. Check the logs above for errors."
+        /usr/local/bin/npm run build || _die "Build failed. Check the logs above for details."
       fi
     fi
 
     _sep
-    _ok "Build complete"
+    _ok "Build complete!"
   fi
 fi
 
