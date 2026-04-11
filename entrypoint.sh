@@ -157,7 +157,7 @@ _info "Port     = ${SERVER_PORT}"
 _step "Installing dependencies"
 
 SHOULD_INSTALL=1
-if [ "${AUTO_UPDATE}" != "1" ] && [ -d /home/container/node_modules ]; then
+if [ "${AUTO_UPDATE}" != "1" ] && [ -d /home/container/node_modules ] && [ -f /home/container/node_modules/.bin/next ]; then
   _ok "node_modules exists and AUTO_UPDATE is off — skipping install"
   SHOULD_INSTALL=0
 fi
